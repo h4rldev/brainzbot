@@ -1,0 +1,8 @@
+[package]
+name = "brainzbot"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+poise = { version = "0.6.1", features = ["cache", "chrono"] }
+tokio = { version = "1.49.0", features = ["full"] }
