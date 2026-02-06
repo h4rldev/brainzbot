@@ -1,2 +1,2 @@
 # brainzbot
-A discord bot for Listenbrainz
+A discord bot for listenbrainz's API.

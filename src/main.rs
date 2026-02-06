@@ -1,41 +1,61 @@
-use poise::serenity_prelude as serenity;
+use brainzbot::{Brainz, BrainzContext, BrainzError};
+use poise::{
+    Framework, FrameworkOptions, PrefixFrameworkOptions, builtins::register_globally,
+    serenity_prelude as serenity,
+};
+use redis::Client as RedisClient;
+use reqwest::Client as HttpClient;
+use serenity::{ClientBuilder, GatewayIntents};
+use std::env;
 
-struct Data {} // User data, which is stored and accessible in all command invocations
-type Error = Box<dyn std::error::Error + Send + Sync>;
-type Context<'a> = poise::Context<'a, Data, Error>;
+mod brainzbot;
 
 /// Displays your or another user's account creation date
 #[poise::command(slash_command, prefix_command)]
 async fn age(
-    ctx: Context<'_>,
+    ctx: BrainzContext<'_>,
     #[description = "Selected user"] user: Option<serenity::User>,
-) -> Result<(), Error> {
+) -> Result<(), BrainzError> {
     let u = user.as_ref().unwrap_or_else(|| ctx.author());
     let response = format!("{}'s account was created at {}", u.name, u.created_at());
     ctx.say(response).await?;
     Ok(())
 }
 
-#[tokio::main]
+#[tokio::main(flavor = "multi_thread")]
 async fn main() {
-    let token = std::env::var("DISCORD_TOKEN").expect("missing DISCORD_TOKEN");
-    let intents = serenity::GatewayIntents::non_privileged();
+    let token = env::var("DISCORD_TOKEN").expect("missing DISCORD_TOKEN");
+    let redis_url = env::var("REDIS_URL").expect("missing REDIS_URL");
 
-    let framework = poise::Framework::builder()
-        .options(poise::FrameworkOptions {
+    let intents = GatewayIntents::non_privileged();
+    let http = HttpClient::new();
+    let valkey = RedisClient::open(redis_url.as_str()).unwrap();
+    let conn = valkey.get_multiplexed_async_connection().await.unwrap();
+
+    let framework = Framework::builder()
+        .options(FrameworkOptions {
             commands: vec![age()],
+            prefix_options: PrefixFrameworkOptions {
+                prefix: Some("%".to_string()),
+                ..Default::default()
+            },
             ..Default::default()
         })
         .setup(|ctx, _ready, framework| {
             Box::pin(async move {
-                poise::builtins::register_globally(ctx, &framework.options().commands).await?;
-                Ok(Data {})
+                register_globally(ctx, &framework.options().commands).await?;
+                Ok(Brainz::new(http, conn))
             })
         })
         .build();
 
-    let client = serenity::ClientBuilder::new(token, intents)
+    let mut client = ClientBuilder::new(token, intents)
         .framework(framework)
-        .await;
-    client.unwrap().start().await.unwrap();
+        .await
+        .unwrap_or_else(|_| panic!("Failed to create client"));
+
+    client
+        .start()
+        .await
+        .unwrap_or_else(|_| panic!("Failed to start client"));
 }
