@@ -1,4 +1,5 @@
 use brainzbot::{Brainz, BrainzContext, BrainzError};
+use dotenvy::dotenv;
 use poise::{
     Framework, FrameworkOptions, PrefixFrameworkOptions, builtins::register_globally,
     serenity_prelude as serenity,
@@ -8,33 +9,26 @@ use reqwest::Client as HttpClient;
 use serenity::{ClientBuilder, GatewayIntents};
 use std::env;
 
-mod brainzbot;
+use crate::commands::login::login;
 
-/// Displays your or another user's account creation date
-#[poise::command(slash_command, prefix_command)]
-async fn age(
-    ctx: BrainzContext<'_>,
-    #[description = "Selected user"] user: Option<serenity::User>,
-) -> Result<(), BrainzError> {
-    let u = user.as_ref().unwrap_or_else(|| ctx.author());
-    let response = format!("{}'s account was created at {}", u.name, u.created_at());
-    ctx.say(response).await?;
-    Ok(())
-}
+mod api;
+mod brainzbot;
+mod commands;
 
 #[tokio::main(flavor = "multi_thread")]
 async fn main() {
+    dotenv().ok();
     let token = env::var("DISCORD_TOKEN").expect("missing DISCORD_TOKEN");
     let redis_url = env::var("REDIS_URL").expect("missing REDIS_URL");
 
-    let intents = GatewayIntents::non_privileged();
+    let intents = GatewayIntents::non_privileged() | GatewayIntents::MESSAGE_CONTENT;
     let http = HttpClient::new();
     let valkey = RedisClient::open(redis_url.as_str()).unwrap();
     let conn = valkey.get_multiplexed_async_connection().await.unwrap();
 
     let framework = Framework::builder()
         .options(FrameworkOptions {
-            commands: vec![age()],
+            commands: vec![login()],
             prefix_options: PrefixFrameworkOptions {
                 prefix: Some("%".to_string()),
                 ..Default::default()
