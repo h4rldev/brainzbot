@@ -19,11 +19,11 @@ mod commands;
 async fn main() {
     dotenv().ok();
     let token = env::var("DISCORD_TOKEN").expect("missing DISCORD_TOKEN");
-    let redis_url = env::var("REDIS_URL").expect("missing REDIS_URL");
+    let valkey_url = env::var("VALKEY_URL").expect("missing VALKEY_URL");
 
     let intents = GatewayIntents::non_privileged() | GatewayIntents::MESSAGE_CONTENT;
     let http = HttpClient::new();
-    let valkey = RedisClient::open(redis_url.as_str()).unwrap();
+    let valkey = RedisClient::open(valkey_url.as_str()).unwrap();
     let conn = valkey.get_multiplexed_async_connection().await.unwrap();
 
     let framework = Framework::builder()

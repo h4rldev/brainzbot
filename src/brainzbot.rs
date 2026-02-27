@@ -15,4 +15,8 @@ impl Brainz {
     pub fn new(http: Client, conn: MultiplexedConnection) -> Self {
         Self { http, conn }
     }
+
+    pub fn conn(&self) -> &MultiplexedConnection {
+        &self.conn
+    }
 }

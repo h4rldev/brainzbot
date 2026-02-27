@@ -7,6 +7,7 @@ use poise::{
         CreateEmbedFooter,
     },
 };
+use redis::AsyncTypedCommands;
 use tokio::time::sleep;
 
 use crate::{
@@ -28,7 +29,7 @@ struct TokenModal {
 pub async fn login(ctx: BrainzContext<'_>) -> Result<(), BrainzError> {
     let embed = CreateEmbed::new()
         .title("Welcome to Brainzbot")
-        .description("Here's how to link your account to Brainzbot!\nMake sure you already logged into ListenBrainz, and visit the [User Settings](https://listenbrainz.org/settings/)\nFrom here, you can copy the user token and provide the token by clicking the button below");
+        .description("Here's how to link your account to Brainzbot!\nMake sure you already logged into ListenBrainz, and visit the [User Settings](https://listenbrainz.org/settings/)\nFrom here, you can copy the user token and provide the token by clicking the button below").image("https://files.catbox.moe/ou2s6k.gif");
 
     let button = CreateButton::new("open_token_modal").label("Login with Access Token");
     let components = CreateActionRow::Buttons(vec![button]);
@@ -88,8 +89,18 @@ pub async fn login(ctx: BrainzContext<'_>) -> Result<(), BrainzError> {
                         .description("You have successfully logged into ListenBrainz")
                         .footer(CreateEmbedFooter::new(format!("Username: {}", &username))),
                 )
-                .await?
-                // TODO: save the token (persumably hashed/encrypted) to db and use discord userid for the key
+                .await?;
+
+                let mut conn = ctx.data().conn().clone();
+
+                // TODO: encrypt the token
+                conn.set(format!("user:{}:token", ctx.author().id.get()), &token)
+                    .await?;
+                conn.set(
+                    format!("user:{}:username", ctx.author().id.get()),
+                    &username,
+                )
+                .await?;
             }
             Err(ApiError::TokenInvalid) => {
                 edit_embed(CreateEmbed::new().title("Failed").description(
