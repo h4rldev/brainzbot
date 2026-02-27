@@ -9,7 +9,7 @@ use reqwest::Client as HttpClient;
 use serenity::{ClientBuilder, GatewayIntents};
 use std::env;
 
-use crate::commands::login::login;
+use crate::commands::{login::login, tracks::nowplaying};
 
 mod api;
 mod brainzbot;
@@ -28,7 +28,7 @@ async fn main() {
 
     let framework = Framework::builder()
         .options(FrameworkOptions {
-            commands: vec![login()],
+            commands: vec![login(), nowplaying()],
             prefix_options: PrefixFrameworkOptions {
                 prefix: Some("%".to_string()),
                 ..Default::default()

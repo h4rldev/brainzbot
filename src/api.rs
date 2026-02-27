@@ -7,6 +7,7 @@ use crate::brainzbot::{BrainzContext, BrainzError};
 
 const API_BASE_URL: &str = "https://api.listenbrainz.org/1";
 
+#[derive(Debug)]
 pub enum ApiError {
     Unexpected,
     ConnectionError(reqwest::Error),
@@ -65,4 +66,24 @@ pub async fn verify_token(token: &str) -> Result<String, ApiError> {
             .ok_or(ApiError::Unexpected)?
             .to_string())
     }
+}
+
+pub struct User {
+    pub token: String,
+    pub username: String,
+}
+
+pub async fn get_user(ctx: BrainzContext<'_>, member: Option<Member>) -> Option<User> {
+    let mut conn = ctx.data().conn().clone();
+    let user_id = member
+        .map(|m| m.user.id.get())
+        .unwrap_or(ctx.author().id.get());
+
+    let token = conn.get(format!("user:{}:token", user_id)).await.ok()??;
+    let username = conn
+        .get(format!("user:{}:username", user_id))
+        .await
+        .ok()??;
+
+    Some(User { token, username })
 }
