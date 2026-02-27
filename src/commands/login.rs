@@ -80,13 +80,13 @@ pub async fn login(ctx: BrainzContext<'_>) -> Result<(), BrainzError> {
         )
         .await?;
 
-        match verify_token(token).await {
+        match verify_token(&token).await {
             Ok(username) => {
                 edit_embed(
                     CreateEmbed::new()
                         .title("Success")
                         .description("You have successfully logged into ListenBrainz")
-                        .footer(CreateEmbedFooter::new(format!("Username: {}", username))),
+                        .footer(CreateEmbedFooter::new(format!("Username: {}", &username))),
                 )
                 .await?
                 // TODO: save the token (persumably hashed/encrypted) to db and use discord userid for the key
@@ -121,7 +121,7 @@ pub async fn login(ctx: BrainzContext<'_>) -> Result<(), BrainzError> {
                 )
                 .await?;
             }
-            Err(ApiError::DatatypeMismatch) => {
+            _ => {
                 edit_embed(
                     CreateEmbed::new()
                         .title("Failed")
