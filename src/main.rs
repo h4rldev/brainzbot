@@ -1,8 +1,12 @@
 use brainzbot::{Brainz, BrainzContext, BrainzError};
 use dotenvy::dotenv;
 use poise::{
-    Framework, FrameworkOptions, PrefixFrameworkOptions, builtins::register_globally,
-    serenity_prelude as serenity,
+    Framework,
+    FrameworkOptions,
+    PrefixFrameworkOptions,
+    // builtins::register_globally,
+    samples::register_in_guild,
+    serenity_prelude::{self as serenity, GuildId},
 };
 use redis::Client as RedisClient;
 use reqwest::Client as HttpClient;
@@ -35,9 +39,23 @@ async fn main() {
             },
             ..Default::default()
         })
-        .setup(|ctx, _ready, framework| {
+        .setup(|ctx, ready, framework| {
             Box::pin(async move {
-                register_globally(ctx, &framework.options().commands).await?;
+                println!("Logged in as {}", ready.user.name);
+                // register_globally(ctx, &framework.options().commands).await?;
+
+                // use register in guild for faster slash command registration thingy
+                register_in_guild(
+                    ctx,
+                    &framework.options().commands,
+                    GuildId::new(
+                        env::var("GUILD_TESTING")
+                            .expect("missing GUILD_TESTING")
+                            .parse::<u64>()
+                            .expect("GUILD_TESTING must be a valid u64"),
+                    ),
+                )
+                .await?;
                 Ok(Brainz::new(http, conn))
             })
         })

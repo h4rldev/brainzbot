@@ -61,6 +61,7 @@ pub async fn login(ctx: BrainzContext<'_>) -> Result<(), BrainzError> {
             Some(Duration::from_secs(10)),
         )
         .await?;
+        println!("Got response: {:?}", modal_response);
         let token = match modal_response {
             Some(m) => m.token,
             None => {

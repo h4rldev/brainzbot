@@ -1,5 +1,6 @@
 use std::time::Duration;
 
+use poise::serenity_prelude::Member;
 use redis::AsyncTypedCommands;
 use reqwest::StatusCode;
 
@@ -33,6 +34,7 @@ pub async fn api_request(
         .send()
         .await?;
 
+    println!("{}: {:?}", endpoint, res);
 
     match res.status() {
         StatusCode::OK => Ok(Some(res.json().await?)),
